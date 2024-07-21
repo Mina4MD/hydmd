@@ -1,0 +1,30 @@
+export AMBERHOME=/root/Downloads/amber22
+$AMBERHOME/bin/antechamber -i BSS.pdb -fi pdb -o BSS.mol2 -fo mol2 -c bcc -nc -12 
+$AMBERHOME/bin/parmchk2 -i BSS.mol2 -f mol2 -o BSS.frcmod
+$AMBERHOME/bin/tleap 
+source leaprc.gaff
+BSS = loadmol2 BSS.mol2 
+loadamberparams BSS.frcmod
+saveoff BSS BSS.lib 
+saveamberparm BSS BSS.prmtop BSS.inpcrd
+quit
+
+/root/Downloads/acpype/acpype_lib/acpype.py -p BSS.prmtop -x BSS.inpcrd
+
+genice --rep 5 2 5 -g 12=ch4 -g 14=ch4 --water tip4p CS1 > si.gro
+genice --rep 5 10 5 -g 12=ch4*0.4+empty*0.6 -g 14=ch4*0.4+empty*0.6 --water tip4p CS1 > sol.gro
+
+gmx editconf -f sol.gro -o sol-box.gro -c -d 0.05
+gmx grompp -f melt.mdp -o sol-melt -p topol-sol.top -c sol-box.gro 
+gmx mdrun -v -deffnm sol-melt
+gmx insert-molecules -ci BSS_GMX.gro -nmol 5 -box 5 8 5 -o bss-box.gro
+gmx editconf -f bss-box.gro -o bss-box2.gro -c -box 6.13 12.13 6.13
+cat sol-melt.gro bss-box2.gro > sol-bss.gro
+gmx editconf -f all.pdb -o all-box.gro -c -box 6.13 12.13 6.13
+gmx grompp -f ions.mdp -c all-box.gro -p topol-sol.top -o ions.tpr
+gmx genion -s ions.tpr -o all-ion.gro -p topol-sol.top -pname NA -nname CL -neutral
+gmx editconf -f all-ion.gro -o all-ion.gro -center 3.06 8.8 3.06 -box 6.13 14.83 6.13
+gmx editconf -f si.gro -o si-box.gro -center 3.06 1.2 3.06 -box 6.13 14.83 6.13
+cat si-box.gro all-ion.gro > mix.gro
+gmx grompp -f em.mdp -o mix-em -p topol-BSS.top -c mix.gro
+gmx mdrun -v -deffnm mix-em

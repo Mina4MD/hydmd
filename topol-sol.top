@@ -1,0 +1,29 @@
+; Include forcefield parameters
+#include "./amber99sb1.ff/forcefield.itp"
+
+; Include chain topologies
+
+; Include chain_A topology
+#include "topol_MET.itp"
+
+; Include water topology
+#include "./amber99sb1.ff/tip4p.itp"
+
+#ifdef POSRES_WATER
+; Position restraint for each water oxygen
+[ position_restraints ]
+;  i funct       fcx        fcy        fcz
+   1    1       1000       1000       1000
+#endif
+
+; Include ION topology
+#include "./amber99sb1.ff/ions.itp"
+
+[ system ]
+; Name
+GROtesk MACabre and Sinister
+
+[ molecules ]
+; Compound        #mols
+SOL              9200
+MeT		 720
